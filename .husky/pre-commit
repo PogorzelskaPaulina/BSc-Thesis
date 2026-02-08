@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# prettier
+yarn prettier
+
+# lint
+yarn lint
+
+# test
+yarn test
+
+# build
+yarn sls package --stage=dev

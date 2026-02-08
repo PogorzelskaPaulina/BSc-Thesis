@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "number",
+      "enum": [
+        15,
+        30,
+        45
+      ]
+    },
+    "hostEmail": {
+      "type": "string"
+    },
+    "guest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "title",
+    "duration",
+    "hostEmail",
+    "guest"
+  ],
+  "additionalProperties": false
+}

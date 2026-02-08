@@ -1,0 +1,544 @@
+onVisitStream:
+  handler: src/adapters/event/onVisitStream/onVisitStream.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitStreamDLQ.Arn
+  environment:
+    EVENT_BUS: !Ref EventBus
+  iamRoleStatements:
+    - Effect: Allow
+      Action: events:PutEvents
+      Resource: !GetAtt EventBus.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitStreamDLQ.Arn
+  events:
+    - stream:
+        type: dynamodb
+        arn: !GetAtt VisitEventStoreTable.StreamArn
+onVisitCreated:
+  handler: src/adapters/event/onVisitCreated/onVisitCreated.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitCreatedDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    ROOM_TABLE: !Ref RoomTable
+    ROOM_RESERVATION_TABLE: !Ref RoomReservationTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: dynamodb:PutItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt RoomTable.Arn
+    - Effect: Allow
+      Action: dynamodb:PutItem
+      Resource: !GetAtt RoomReservationTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitCreatedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_CREATED
+        deadLetterQueueArn: !GetAtt OnVisitCreatedDLQ.Arn
+onVisitRequested:
+  handler: src/adapters/event/onVisitRequested/onVisitRequested.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitRequestedDLQ.Arn
+  environment:
+    VISIT_REQUEST_TABLE: !Ref VisitRequestTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: dynamodb:PutItem
+      Resource: !GetAtt VisitRequestTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitRequestedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_REQUESTED
+        deadLetterQueueArn: !GetAtt OnVisitRequestedDLQ.Arn
+onVisitRequestedNotifier:
+  handler: src/adapters/event/onVisitRequestedNotifier/onVisitRequestedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitRequestedNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitRequestedNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_REQUESTED
+        deadLetterQueueArn: !GetAtt OnVisitRequestedNotifierDLQ.Arn
+onVisitRequestAccepted:
+  handler: src/adapters/event/onVisitRequestAccepted/onVisitRequestAccepted.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitRequestAcceptedDLQ.Arn
+  environment:
+    VISIT_REQUEST_TABLE: !Ref VisitRequestTable
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+      Resource: !GetAtt VisitRequestTable.Arn
+    - Effect: Allow
+      Action: dynamodb:PutItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitRequestAcceptedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_REQUEST_ACCEPTED
+        deadLetterQueueArn: !GetAtt OnVisitRequestAcceptedDLQ.Arn
+onVisitRequestDeclined:
+  handler: src/adapters/event/onVisitRequestDeclined/onVisitRequestDeclined.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitRequestDeclinedDLQ.Arn
+  environment:
+    VISIT_REQUEST_TABLE: !Ref VisitRequestTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:UpdateItem
+      Resource: !GetAtt VisitRequestTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitRequestDeclinedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_REQUEST_DECLINED
+        deadLetterQueueArn: !GetAtt OnVisitRequestDeclinedDLQ.Arn
+onVisitCreatedNotifier:
+  handler: src/adapters/event/onVisitCreatedNotifier/onVisitCreatedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitCreatedNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    INVITATION_APP_LINK: ${self:custom.configFile.INVITATION_APP_LINK}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitCreatedNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_CREATED
+        deadLetterQueueArn: !GetAtt OnVisitCreatedNotifierDLQ.Arn
+onVisitInvitationAccepted:
+  handler: src/adapters/event/onVisitInvitationAccepted/onVisitInvitationAccepted.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitInvitationAcceptedDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitInvitationAcceptedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_INVITATION_ACCEPTED
+        deadLetterQueueArn: !GetAtt OnVisitInvitationAcceptedDLQ.Arn
+onVisitInvitationDeclined:
+  handler: src/adapters/event/onVisitInvitationDeclined/onVisitInvitationDeclined.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitInvitationDeclinedDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitInvitationDeclinedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_INVITATION_DECLINED
+        deadLetterQueueArn: !GetAtt OnVisitInvitationDeclinedDLQ.Arn
+onVisitInvitationDeclinedNotifier:
+  handler: src/adapters/event/onVisitInvitationDeclinedNotifier/onVisitInvitationDeclinedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitInvitationDeclinedNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitInvitationDeclinedNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_INVITATION_DECLINED
+        deadLetterQueueArn: !GetAtt OnVisitInvitationDeclinedNotifierDLQ.Arn
+onVisitInvitationAcceptedNotifier:
+  handler: src/adapters/event/onVisitInvitationAcceptedNotifier/onVisitInvitationAcceptedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitInvitationAcceptedNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitInvitationAcceptedNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_INVITATION_ACCEPTED
+        deadLetterQueueArn: !GetAtt OnVisitInvitationAcceptedNotifierDLQ.Arn
+onVisitCanceled:
+  handler: src/adapters/event/onVisitCanceled/onVisitCanceled.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitCanceledDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ROOM_RESERVATION_TABLE: !Ref RoomReservationTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:UpdateItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+      Resource: !Sub ${RoomReservationTable.Arn}/index/byVisitId
+    - Effect: Allow
+      Action:
+        - dynamodb:DeleteItem
+      Resource: !GetAtt RoomReservationTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitCanceledDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_CANCELED
+        deadLetterQueueArn: !GetAtt OnVisitCanceledDLQ.Arn
+onVisitTimeframeChanged:
+  handler: src/adapters/event/onVisitTimeframeChanged/onVisitTimeframeChanged.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitTimeframeChangedDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ROOM_RESERVATION_TABLE: !Ref RoomReservationTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:UpdateItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${RoomReservationTable.Arn}/index/byVisitId
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: !GetAtt RoomReservationTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitTimeframeChangedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_TIMEFRAME_CHANGED
+        deadLetterQueueArn: !GetAtt OnVisitTimeframeChangedDLQ.Arn
+onVisitGuestsChanged:
+  handler: src/adapters/event/onVisitGuestsChanged/onVisitGuestsChanged.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitGuestsChangedDLQ.Arn
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:PutItem
+        - dynamodb:DeleteItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitGuestsChangedDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_GUESTS_CHANGED
+        deadLetterQueueArn: !GetAtt OnVisitGuestsChangedDLQ.Arn
+onVisitGuestsChangedNotifier:
+  handler: src/adapters/event/onVisitGuestsChangedNotifier/onVisitGuestsChangedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitGuestsChangedDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    INVITATION_APP_LINK: ${self:custom.configFile.INVITATION_APP_LINK}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitGuestsChangedDLQ.Arn
+
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_GUESTS_CHANGED
+        deadLetterQueueArn: !GetAtt OnVisitGuestsChangedDLQ.Arn
+onVisitCanceledNotifier:
+  handler: src/adapters/event/onVisitCanceledNotifier/onVisitCanceledNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitCanceledNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitCanceledNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_CANCELED
+        deadLetterQueueArn: !GetAtt OnVisitCanceledNotifierDLQ.Arn
+onVisitTimeframeChangedNotifier:
+  handler: src/adapters/event/onVisitTimeframeChangedNotifier/onVisitTimeframeChangedNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitTimeframeChangedNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitTimeframeChangedNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISIT_TIMEFRAME_CHANGED
+        deadLetterQueueArn: !GetAtt OnVisitTimeframeChangedNotifierDLQ.Arn
+onVisitorCheckedInNotifier:
+  handler: src/adapters/event/onVisitorCheckedInNotifier/onVisitorCheckedInNotifier.handler
+  destinations:
+    onFailure:
+      type: sqs
+      arn: !GetAtt OnVisitorCheckedInNotifierDLQ.Arn
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action: sqs:SendMessage
+      Resource: !GetAtt OnVisitorCheckedInNotifierDLQ.Arn
+  events:
+    - eventBridge:
+        eventBus: !Ref EventBus
+        pattern:
+          detail-type:
+            - VISITOR_CHECKED_IN
+        deadLetterQueueArn: !GetAtt OnVisitorCheckedInNotifierDLQ.Arn

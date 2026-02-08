@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "guestsEmails": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "email"
+      }
+    }
+  },
+  "required": [
+    "guestsEmails"
+  ],
+  "additionalProperties": false
+}

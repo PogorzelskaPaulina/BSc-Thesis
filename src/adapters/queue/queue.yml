@@ -1,0 +1,35 @@
+Resources:
+  OnVisitCreatedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitCreatedNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitStreamDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitInvitationAcceptedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitInvitationDeclinedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitInvitationAcceptedNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitInvitationDeclinedNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitCanceledDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitCanceledNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitRequestedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitRequestedNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitRequestAcceptedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitRequestDeclinedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitTimeframeChangedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitGuestsChangedDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitTimeframeChangedNotifierDLQ:
+    Type: AWS::SQS::Queue
+  OnVisitorCheckedInNotifierDLQ:
+    Type: AWS::SQS::Queue

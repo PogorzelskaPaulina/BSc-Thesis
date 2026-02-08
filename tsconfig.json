@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+      "target": "es2020",
+      "strict": true,
+      "preserveConstEnums": true,
+      "noEmit": true,
+      "sourceMap": true,
+      "module":"commonjs",
+      "moduleResolution":"node",
+      "esModuleInterop": true, 
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true, 
+      "isolatedModules": true, 
+      "experimentalDecorators": true,
+      "strictPropertyInitialization": false,
+      "plugins": [
+        {
+          "transform": "ts-auto-mock/transformer",
+          "cacheBetweenTests": false
+        }
+      ]
+    },
+    "include": ["src", "jest.setup.ts", "jest.teardown.ts"],
+    "exclude": ["node_modules"]
+}

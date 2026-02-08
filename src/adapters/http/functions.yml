@@ -1,0 +1,517 @@
+createVisit:
+  handler: src/adapters/http/createVisit/createVisit.handler
+  events:
+    - http:
+        path: visits
+        method: post
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/createVisit/schema.json)}
+              name: createVisitBody
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    ROOM_TABLE: !Ref RoomTable
+    ROOM_RESERVATION_TABLE: !Ref RoomReservationTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt AttendeeTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+      Resource: !GetAtt RoomTable.Arn
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${RoomReservationTable.Arn}/index/byBaseDateRoomIdAndDateStart
+changeVisitTimeframe:
+  handler: src/adapters/http/changeVisitTimeframe/changeVisitTimeframe.handler
+  environment:
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+  events:
+    - http:
+        path: visits/{id}/change-timeframe
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/changeVisitTimeframe/schema.json)}
+              name: changeVisitTimeframeBody
+changeVisitGuests:
+  handler: src/adapters/http/changeVisitGuests/changeVisitGuests.handler
+  environment:
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    VISIT_TABLE: !Ref VisitTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt AttendeeTable.Arn
+  events:
+    - http:
+        path: visits/{id}/change-guests
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/changeVisitGuests/schema.json)}
+              name: changeVisitGuestsBody
+createVisitRequest:
+  handler: src/adapters/http/createVisitRequest/createVisitRequest.handler
+  events:
+    - http:
+        path: visit-requests
+        method: post
+        private: true
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/createVisitRequest/schema.json)}
+              name: createVisitRequestBody
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    ATTENDEE_TABLE: !Ref AttendeeTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt AttendeeTable.Arn
+acceptVisitRequest:
+  handler: src/adapters/http/acceptVisitRequest/acceptVisitRequest.handler
+  environment:
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+  events:
+    - http:
+        path: visit-requests/{id}/accept
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+declineVisitRequest:
+  handler: src/adapters/http/declineVisitRequest/declineVisitRequest.handler
+  environment:
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+  events:
+    - http:
+        path: visit-requests/{id}/decline
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+getVisit:
+  handler: src/adapters/http/getVisit/getVisit.handler
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+  events:
+    - http:
+        path: visits/{id}
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+getVisitRequest:
+  handler: src/adapters/http/getVisitRequest/getVisitRequest.handler
+  environment:
+    VISIT_REQUEST_TABLE: !Ref VisitRequestTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitRequestTable.Arn
+  events:
+    - http:
+        path: visit-requests/{id}
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+            querystrings:
+              limit: false
+              cursor: false
+getVisitRequests:
+  handler: src/adapters/http/getVisitRequests/getVisitRequests.handler
+  environment:
+    VISIT_REQUEST_TABLE: !Ref VisitRequestTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitRequestTable.Arn}/index/byHostEmailAndRequestDate
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitRequestTable.Arn}/index/byRequestDate
+  events:
+    - http:
+        path: visit-requests
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            querystrings:
+              limit: false
+              cursor: false
+getVisits:
+  handler: src/adapters/http/getVisits/getVisits.handler
+  environment:
+    VISIT_TABLE: !Ref VisitTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitTable.Arn}/index/byHostEmailAndStartDate
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitTable.Arn}/index/byTypeAndStartDate
+  events:
+    - http:
+        path: visits
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            querystrings:
+              limit: false
+              cursor: false
+getRooms:
+  handler: src/adapters/http/getRooms/getRooms.handler
+  environment:
+    ROOM_TABLE: !Ref RoomTable
+    ROOM_RESERVATION_TABLE: !Ref RoomReservationTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:Scan
+      Resource: !GetAtt RoomTable.Arn
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !GetAtt RoomReservationTable.Arn
+  events:
+    - http:
+        path: rooms
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            querystrings:
+              startDate: true
+              endDate: true
+              limit: false
+              cursor: false
+acceptVisitInvitation:
+  handler: src/adapters/http/acceptVisitInvitation/acceptVisitInvitation.handler
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+  events:
+    - http:
+        path: visits/{id}/accept-invitation
+        method: put
+        cors: true
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/acceptVisitInvitation/schema.json)}
+              name: acceptVisitInvitationBody
+          parameters:
+            paths:
+              id: true
+declineVisitInvitation:
+  handler: src/adapters/http/declineVisitInvitation/declineVisitInvitation.handler
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+  events:
+    - http:
+        path: visits/{id}/decline-invitation
+        method: put
+        cors: true
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/declineVisitInvitation/schema.json)}
+              name: declineVisitInvitationBody
+          parameters:
+            paths:
+              id: true
+cancelVisit:
+  handler: src/adapters/http/cancelVisit/cancelVisit.handler
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+  events:
+    - http:
+        path: visits/{id}/cancel
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          parameters:
+            paths:
+              id: true
+docs:
+  handler: src/adapters/http/docs/docs.handler
+  environment:
+    API_GATEWAY_ID: !Ref ApiGatewayRestApi
+    STAGE: ${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action: apigateway:GET
+      Resource: !Sub arn:aws:apigateway:${self:provider.region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}/exports/swagger
+  events:
+    - http:
+        path: docs
+        method: get
+getUser:
+  handler: src/adapters/http/getUser/getUser.handler
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt AttendeeTable.Arn
+  events:
+    - http:
+        path: me
+        method: get
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+addFCMToken:
+  handler: src/adapters/http/addFCMToken/addFCMToken.handler
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:CreatePlatformEndpoint
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource: !GetAtt AttendeeTable.Arn
+  events:
+    - http:
+        path: me/add-fcm-token
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/addFCMToken/schema.json)}
+              name: addFCMTokenBody
+removeFCMToken:
+  handler: src/adapters/http/removeFCMToken/removeFCMToken.handler
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    PLATFORM_APPLICATION_ARN: ${self:custom.snsPlatformApplicationARN}
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:GetEndpointAttributes
+        - sns:DeleteEndpoint
+      Resource: ${self:custom.snsPlatformApplicationARN}
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource: !GetAtt AttendeeTable.Arn
+  events:
+    - http:
+        path: me/remove-fcm-token
+        method: put
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/removeFCMToken/schema.json)}
+              name: removeFCMTokenBody
+requestAuditLog:
+  handler: src/adapters/http/requestAuditLog/requestAuditLog.handler
+  environment:
+    ATTENDEE_TABLE: !Ref AttendeeTable
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    VISIT_TABLE: !Ref VisitTable
+    MAIL_USER: ${self:custom.configFile.MAIL_USER}
+    MAIL_PASSWORD: ${self:custom.configFile.MAIL_PASSWORD}
+    ADMINS_GROUP_NAME: !Ref AdminsGroup
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitEventStoreTable.Arn}/index/byAdminReadAndTimestamp
+  events:
+    - http:
+        path: me/request-audit-log
+        method: post
+        authorizer:
+          name: UserPoolAuthorizer
+          type: COGNITO_USER_POOLS
+          arn: !GetAtt CognitoUserPool.Arn
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/requestAuditLog/schema.json)}
+              name: requestAuditLogBody
+checkInVisitor:
+  handler: src/adapters/http/checkInVisitor/checkInVisitor.handler
+  environment:
+    VISITS_EVENT_STORE_TABLE: !Ref VisitEventStoreTable
+    VISIT_TABLE: !Ref VisitTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource: !GetAtt VisitEventStoreTable.Arn
+    - Effect: Allow
+      Action: dynamodb:GetItem
+      Resource: !GetAtt VisitTable.Arn
+    - Effect: Allow
+      Action: dynamodb:Query
+      Resource: !Sub ${VisitTable.Arn}/index/byPinAndBaseDate
+  events:
+    - http:
+        path: visits/check-in-visitor
+        method: put
+        private: true
+        request:
+          schemas:
+            application/json:
+              schema: ${file(src/adapters/http/checkInVisitor/schema.json)}
+              name: checkInVisitorBody

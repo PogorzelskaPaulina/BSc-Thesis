@@ -1,0 +1,43 @@
+name: On release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Setup local DynamoDB
+        run: docker run -p 8000:8000 amazon/dynamodb-local &
+      - name: Install dependencies
+        run: npm install
+      - name: Tests
+        run: npm run test
+      - name: Deploy to prod
+        run: npm run sls deploy -- --stage=prod
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Send to slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "Deployed new version to the prod env\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Deployed new version to the prod env\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

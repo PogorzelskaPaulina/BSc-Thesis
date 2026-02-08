@@ -1,0 +1,46 @@
+<html>
+  <%- include('styles') -%>
+
+  <body class="body">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center" class="h">
+          <div class="title">
+            &#9995; <strong>Meeting Management</strong> &#129309;
+          </div>
+          <div class="wrapper">
+            <div class="header">
+              <b>You've been invited to the meeting !</b>
+            </div>
+            <div class="content">
+              You've been invited to the meeting
+              <strong>"<%= title %>"</strong> by
+              <strong><%= host.name %></strong> to meeting that will take place
+              <strong><%= date %> <%= startTime %>-<%= endTime %></strong>.
+              Respond to marking your attendance below. <br /><br />
+              <a href="<%= appLink %>"><button>Mark attendance</button></a>
+            </div>
+            <%if (guest.type === "visitor") { %>
+  
+              <div class="footer">
+                <strong>By accepting the visit you agree to the company policy</strong>
+                <p>1. No smoking</p>
+                <p>2. No recording</p>
+              </div>
+          <% } %>
+    
+            <div class="divider"></div>
+            <div class="footer">
+              <strong>Is it important to confirm my attendance?</strong>
+              <p>
+                Host reserved a meeting place, by marking your attendance he's
+                able to manage this space or reschedule meetings to your needs.
+                Let him know!
+              </p>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

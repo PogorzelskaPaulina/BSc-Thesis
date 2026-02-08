@@ -1,0 +1,46 @@
+Resources:
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireUppercase: false
+          RequireSymbols: false
+      UsernameAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: name
+          Required: false
+          Mutable: true
+  MobileUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: mobile
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      CallbackURLs:
+        - http://localhost:3000/
+      AllowedOAuthFlows:
+        - implicit
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+  AdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: AdminsGroup
+      UserPoolId: !Ref CognitoUserPool

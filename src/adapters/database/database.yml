@@ -1,0 +1,174 @@
+Resources:
+  VisitEventStoreTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-visit-event-store-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: aggregateId
+          AttributeType: S
+        - AttributeName: version
+          AttributeType: N
+        - AttributeName: adminRead
+          AttributeType: N
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: aggregateId
+          KeyType: HASH
+        - AttributeName: version
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: byAdminReadAndTimestamp
+          KeySchema:
+            - AttributeName: adminRead
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+  VisitTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-visit-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: startDate
+          AttributeType: S
+        - AttributeName: hostEmail
+          AttributeType: S
+        - AttributeName: type
+          AttributeType: S
+        - AttributeName: pinAndBaseDate
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: byHostEmailAndStartDate
+          KeySchema:
+            - AttributeName: hostEmail
+              KeyType: HASH
+            - AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: byTypeAndStartDate
+          KeySchema:
+            - AttributeName: type
+              KeyType: HASH
+            - AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: byPinAndBaseDate
+          KeySchema:
+            - AttributeName: pinAndBaseDate
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: type
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expirationTime
+        Enabled: true
+  VisitRequestTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-visit-request-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: requestDate
+          AttributeType: S
+        - AttributeName: baseRequestDate
+          AttributeType: S
+        - AttributeName: hostEmail
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: byHostEmailAndRequestDate
+          KeySchema:
+            - AttributeName: hostEmail
+              KeyType: HASH
+            - AttributeName: requestDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: byRequestDate
+          KeySchema:
+            - AttributeName: baseRequestDate
+              KeyType: HASH
+            - AttributeName: requestDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expirationTime
+        Enabled: true
+  AttendeeTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-attendee-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+  RoomTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-room-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+  RoomReservationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.resourceSlug}-room-reservation-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: baseDate
+          AttributeType: S
+        - AttributeName: dateStartAndId
+          AttributeType: S
+        - AttributeName: baseDateAndRoomId
+          AttributeType: S
+        - AttributeName: visitId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: baseDate
+          KeyType: HASH
+        - AttributeName: dateStartAndId
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expirationTime
+        Enabled: true
+      GlobalSecondaryIndexes:
+        - IndexName: byBaseDateRoomIdAndDateStart
+          KeySchema:
+            - AttributeName: baseDateAndRoomId
+              KeyType: HASH
+            - AttributeName: dateStartAndId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: byVisitId
+          KeySchema:
+            - AttributeName: visitId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL

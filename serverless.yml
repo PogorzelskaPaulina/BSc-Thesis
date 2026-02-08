@@ -1,0 +1,39 @@
+service: vms-backend
+
+plugins:
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+
+package:
+  individually: true
+
+custom:
+  webpack:
+    webpackConfig: "webpack.config.js"
+    includeModules: false
+    packager: "yarn"
+    excludeFiles: src/**/*.test.ts
+  configFile: ${file(.env.${opt:stage, 'dev'}.yml):}
+  resourceSlug: vms-backend-${self:custom.configFile.STAGE}
+  snsPlatformApplicationARN: !Sub arn:aws:sns:${self:custom.configFile.REGION}:${aws:accountId}:app/GCM/vms-backend-${self:custom.configFile.STAGE}
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  architecture: arm64
+  stage: ${self:custom.configFile.STAGE}
+  region: ${self:custom.configFile.REGION}
+  environment:
+    STAGE: ${self:custom.configFile.STAGE}
+  apiGateway:
+    apiKeys:
+      - ${self:custom.configFile.STAGE}-visitor-app-key
+functions:
+  - ${file(src/adapters/http/functions.yml)}
+  - ${file(src/adapters/event/functions.yml)}
+
+resources:
+  - ${file(src/adapters/database/database.yml)}
+  - ${file(src/adapters/event/eventBus.yml)}
+  - ${file(src/adapters/queue/queue.yml)}
+  - ${file(src/adapters/auth/auth.yml)}

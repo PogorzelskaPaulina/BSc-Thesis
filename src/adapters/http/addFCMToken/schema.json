@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "FCMToken": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "FCMToken"
+  ],
+  "additionalProperties": false
+}

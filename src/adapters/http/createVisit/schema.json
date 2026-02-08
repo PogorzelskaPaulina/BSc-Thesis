@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "timeframe": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "hostEmail": {
+      "type": "string",
+      "format": "email"
+    },
+    "guestsEmails": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "email"
+      }
+    },
+    "roomId": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "title",
+    "timeframe",
+    "guestsEmails"
+  ],
+  "additionalProperties": false
+}

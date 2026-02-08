@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "pinCode": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "pinCode"
+  ],
+  "additionalProperties": false
+}
